@@ -32,6 +32,11 @@ fn main() {
     match &cli.command {
         Commands::Search { query } => {
             println!("Searching for: {}", query);
+
+            // Clean the query of punctuation
+            let cleaned_query: String = query
+                .replace(|c: char| c.is_ascii_punctuation(), "")
+                .to_lowercase();
             // Bring in json data
             let movies: Vec<Movie> = json_loader().expect("Failed to load movies");
             // We can search for the query in the `Movie` struct.
@@ -40,10 +45,15 @@ fn main() {
             let queried: Vec<&Movie> = movies
                 .iter()
                 .filter(|movie| {
-                    movie
+                    let cleaned_title = movie
                         .title
-                        .to_lowercase()
-                        .contains(&query.clone().to_lowercase())
+                        .replace(|c: char| c.is_ascii_punctuation(), "")
+                        .to_lowercase();
+                    cleaned_title.contains(&cleaned_query) // contains only accepts string slice as
+                    // parameter, but it compares it to a
+                    // String and not &str.
+                    // cleaned_title needs to be String
+                    // cleaned_query needs to be &str here
                 })
                 .collect();
 
