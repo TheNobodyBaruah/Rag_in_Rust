@@ -1,7 +1,11 @@
 pub mod data_loader;
+pub mod stop_word_remover;
+pub mod tokenize;
 
 use crate::data_loader::{Movie, json_loader};
+use crate::tokenize::tokenizer;
 use clap::{Parser, Subcommand};
+use std::collections::HashSet;
 
 #[derive(Parser)]
 // Adds the corresponding struct to implement the `Parser` trait
@@ -19,7 +23,8 @@ enum Commands {
     /// Search movies using keyword
     // This statement is printed when help is called wow!
     Search {
-        // This means, now we have '-- search' sub-command
+        // The name of the struct means, now we have '-- search' sub-command
+        // But the command will be the name of the struct but in lowercase
         #[arg(help = "Search query")]
         query: String, // Field of the search struct
     },
@@ -31,12 +36,15 @@ fn main() {
 
     match &cli.command {
         Commands::Search { query } => {
-            println!("Searching for: {}", query);
+            println!("Searching for: {}\n", query);
 
             // Clean the query of punctuation
             let cleaned_query: String = query
                 .replace(|c: char| c.is_ascii_punctuation(), "")
                 .to_lowercase();
+
+            let cleaned_query_tokenized: HashSet<&str> = tokenizer(&cleaned_query);
+
             // Bring in json data
             let movies: Vec<Movie> = json_loader().expect("Failed to load movies");
             // We can search for the query in the `Movie` struct.
@@ -45,15 +53,38 @@ fn main() {
             let queried: Vec<&Movie> = movies
                 .iter()
                 .filter(|movie| {
+                    // NOTE: We are writing the condition
+                    // for filter, so a boolean is expected such that
+                    // if true it could be filtered and if not then
+                    // not filtered.
                     let cleaned_title = movie
                         .title
                         .replace(|c: char| c.is_ascii_punctuation(), "")
                         .to_lowercase();
-                    cleaned_title.contains(&cleaned_query) // contains only accepts string slice as
+
+                    let cleaned_title_tokenized: HashSet<&str> = tokenizer(&cleaned_title);
+
+                    /*println!(
+                        "cleaned_title_tokenized: {:?}\ncleaned_query_tokenized: {:?}",
+                        cleaned_title_tokenized, cleaned_query_tokenized
+                    );*/
+ // used for debugging
+
+                    /* cleaned_title.contains(&cleaned_query) */
+                    // contains only accepts string slice as
                     // parameter, but it compares it to a
                     // String and not &str.
                     // cleaned_title needs to be String
                     // cleaned_query needs to be &str here
+                    //
+                    //
+                    // see if tokenized query vec![] contains contains
+                    // any &str of the tokenized title vec![]
+                    // compare both the vectors and if in tokenized
+                    // query contains any &str of tokenized title
+                    // get the movie
+                    // Or we might use a HashSet
+                    !cleaned_title_tokenized.is_disjoint(&cleaned_query_tokenized)
                 })
                 .collect();
 
