@@ -1,11 +1,14 @@
 pub mod data_loader;
 pub mod stop_word_remover;
+pub mod text_processing;
 pub mod tokenize;
 
 use crate::data_loader::{Movie, json_loader};
+use crate::stop_word_remover::get_stop_words;
 use crate::tokenize::tokenizer;
 use clap::{Parser, Subcommand};
 use std::collections::HashSet;
+use text_processing::text_processor;
 
 #[derive(Parser)]
 // Adds the corresponding struct to implement the `Parser` trait
@@ -44,6 +47,15 @@ fn main() {
                 .to_lowercase();
 
             let cleaned_query_tokenized: HashSet<&str> = tokenizer(&cleaned_query);
+            // TODO: Remove stop words from here!
+
+            let stop_words_text: String = get_stop_words();
+
+            let stop_words: HashSet<&str> =
+                stop_words_text.lines().map(|line| line.trim()).collect();
+            // we don't need to tokenize it since it's already words in the file.
+
+            /* println!("stop_words: {:?}", stop_words); */
 
             // Bring in json data
             let movies: Vec<Movie> = json_loader().expect("Failed to load movies");
@@ -63,12 +75,13 @@ fn main() {
                         .to_lowercase();
 
                     let cleaned_title_tokenized: HashSet<&str> = tokenizer(&cleaned_title);
+                    // TODO: Remove stop words from here.
 
                     /*println!(
                         "cleaned_title_tokenized: {:?}\ncleaned_query_tokenized: {:?}",
                         cleaned_title_tokenized, cleaned_query_tokenized
                     );*/
- // used for debugging
+                    // used for debugging
 
                     /* cleaned_title.contains(&cleaned_query) */
                     // contains only accepts string slice as
