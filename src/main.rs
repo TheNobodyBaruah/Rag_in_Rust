@@ -1,4 +1,5 @@
 pub mod data_loader;
+pub mod stemming;
 pub mod stop_word_remover;
 pub mod text_processing;
 pub mod tokenize;
@@ -8,6 +9,7 @@ use crate::stop_word_remover::get_stop_words;
 use crate::tokenize::tokenizer;
 use clap::{Parser, Subcommand};
 use std::collections::HashSet;
+use stemming::stemmer;
 use text_processing::text_processor;
 
 #[derive(Parser)]
@@ -41,14 +43,7 @@ fn main() {
         Commands::Search { query } => {
             println!("Searching for: {}\n", query);
 
-            // Clean the query of punctuation
-            let cleaned_query: String = query
-                .replace(|c: char| c.is_ascii_punctuation(), "")
-                .to_lowercase();
-
-            let cleaned_query_tokenized: HashSet<&str> = tokenizer(&cleaned_query);
-            // TODO: Remove stop words from here!
-
+            // STOP WORDS
             let stop_words_text: String = get_stop_words();
 
             let stop_words: HashSet<&str> =
@@ -56,6 +51,17 @@ fn main() {
             // we don't need to tokenize it since it's already words in the file.
 
             /* println!("stop_words: {:?}", stop_words); */
+
+            // Clean the query of punctuation
+            let cleaned_query: String = text_processor(query);
+
+            let mut cleaned_query_tokenized: HashSet<&str> = tokenizer(&cleaned_query);
+
+            cleaned_query_tokenized.retain(|item| !stop_words.contains(item));
+
+            let stemmed_query_cow = stemmer(&cleaned_query_tokenized);
+            let stemmed_query: HashSet<&str> =
+                stemmed_query_cow.iter().map(|cow| cow.as_ref()).collect();
 
             // Bring in json data
             let movies: Vec<Movie> = json_loader().expect("Failed to load movies");
@@ -69,13 +75,19 @@ fn main() {
                     // for filter, so a boolean is expected such that
                     // if true it could be filtered and if not then
                     // not filtered.
-                    let cleaned_title = movie
-                        .title
-                        .replace(|c: char| c.is_ascii_punctuation(), "")
-                        .to_lowercase();
+                    /* let cleaned_title = movie
+                    .title
+                    .replace(|c: char| c.is_ascii_punctuation(), "")
+                    .to_lowercase(); */
+                    let cleaned_title = text_processor(&movie.title);
 
-                    let cleaned_title_tokenized: HashSet<&str> = tokenizer(&cleaned_title);
-                    // TODO: Remove stop words from here.
+                    let mut cleaned_title_tokenized: HashSet<&str> = tokenizer(&cleaned_title);
+
+                    cleaned_title_tokenized.retain(|item| !stop_words.contains(item));
+
+                    let stemmed_title_cow = stemmer(&cleaned_title_tokenized);
+                    let stemmed_title: HashSet<&str> =
+                        stemmed_title_cow.iter().map(|cow| cow.as_ref()).collect();
 
                     /*println!(
                         "cleaned_title_tokenized: {:?}\ncleaned_query_tokenized: {:?}",
@@ -97,7 +109,17 @@ fn main() {
                     // query contains any &str of tokenized title
                     // get the movie
                     // Or we might use a HashSet
-                    !cleaned_title_tokenized.is_disjoint(&cleaned_query_tokenized)
+                    /* !cleaned_title_tokenized.is_disjoint(&cleaned_query_tokenized)*/
+                    //
+                    /* cleaned_query_tokenized
+                    .iter()
+                    .any(|query_word| cleaned_title.contains(query_word)) */
+                    // Based on comparing token this is the code
+                    stemmed_title.iter().any(|title_token| {
+                        stemmed_query
+                            .iter()
+                            .any(|query_token| title_token.contains(query_token))
+                    })
                 })
                 .collect();
 
