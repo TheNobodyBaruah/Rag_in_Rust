@@ -1,10 +1,12 @@
 pub mod data_loader;
+pub mod inverted_index;
 pub mod stemming;
 pub mod stop_word_remover;
 pub mod text_processing;
 pub mod tokenize;
 
 use crate::data_loader::{Movie, json_loader};
+use crate::inverted_index::InvertedIndex;
 use crate::stop_word_remover::get_stop_words;
 use crate::tokenize::tokenizer;
 use clap::{Parser, Subcommand};
@@ -25,6 +27,8 @@ struct Cli {
 
 #[derive(Subcommand)] // With this each variant becomes valid sub-command
 enum Commands {
+    /// Build and save the inverted_index nad docmap
+    Build,
     /// Search movies using keyword
     // This statement is printed when help is called wow!
     Search {
@@ -40,12 +44,25 @@ fn main() {
     // This is possible because of `Cli` implementing `Parser` trait.
 
     match &cli.command {
+        Commands::Build => {
+            println!("Building inverted index...");
+            let mut index: InvertedIndex = inverted_index::InvertedIndex {
+                index: std::collections::HashMap::new(),
+                docmap: std::collections::HashMap::new(),
+                block_size_limit: 500, // eg. flush to disk every 500 documents
+                block_counter: 0,
+                docs_in_current_batch: 0,
+            };
+            index.build();
+        }
         Commands::Search { query } => {
             println!("Searching for: {}\n", query);
 
             // STOP WORDS
             let stop_words_text: String = get_stop_words();
 
+            // TODO: structure this code such that it can be called as a single
+            // function and we get a `HashSet` with no stop words in it.
             let stop_words: HashSet<&str> =
                 stop_words_text.lines().map(|line| line.trim()).collect();
             // we don't need to tokenize it since it's already words in the file.

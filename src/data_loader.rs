@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
@@ -10,7 +10,7 @@ pub struct MovieData {
     pub movies: Vec<Movie>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Movie {
     // How is a movie represented in json file
     pub id: u32,

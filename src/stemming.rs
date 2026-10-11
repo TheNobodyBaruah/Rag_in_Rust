@@ -18,3 +18,14 @@ pub fn stemmer<'a>(tokenized: &HashSet<&'a str>) -> HashSet<Cow<'a, str>> {
     }
     set
 }
+
+// TODO: Understand lifetimes and settle the problems here.
+pub fn stemmer_hashset<'a>(tokens: HashSet<&'a str>) -> HashSet<&str> {
+    let hash_set_cow: HashSet<Cow<'a, str>> = stemmer(&'a tokens);
+
+    let hash_set_str: HashSet<&'a str> = hash_set_cow
+        .iter()
+        .map(|element| element.as_ref())
+        .collect();
+    hash_set_str
+}
